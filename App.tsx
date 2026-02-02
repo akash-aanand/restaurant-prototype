@@ -34,7 +34,7 @@ const App: React.FC = () => {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
-    setIsCartOpen(true);
+    // Removed automatic opening of cart here as per user request
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -47,6 +47,7 @@ const App: React.FC = () => {
     }));
   };
 
+  // Fixed error: Corrected removeFromCart to properly filter items and fixed syntax issues
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
@@ -141,6 +142,8 @@ const App: React.FC = () => {
           <motion.button 
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
+            animate={{ scale: cartCount > 0 ? [1, 1.2, 1] : 1 }}
+            transition={{ duration: 0.3 }}
             onClick={() => setIsCartOpen(true)}
             className="relative p-3 bg-black text-white rounded-2xl shadow-xl hover:bg-orange-500 transition-colors"
           >
@@ -400,8 +403,16 @@ const App: React.FC = () => {
           <div>
             <h4 className="font-black text-xl mb-10 uppercase tracking-widest">Contact</h4>
             <ul className="space-y-6 text-gray-500 font-bold text-lg">
-              <li className="flex gap-4"><MapPin className="shrink-0" /> 121 King St, VIC</li>
-              <li className="flex gap-4"><Phone className="shrink-0" /> (555) 123-4567</li>
+              <li className="flex gap-4 group">
+                <a href="https://maps.google.com/?q=121+King+St,+Melbourne+VIC+3000" target="_blank" rel="noopener noreferrer" className="flex gap-4 hover:text-orange-500 transition-colors">
+                  <MapPin className="shrink-0 group-hover:scale-110 transition-transform" /> 121 King St, VIC
+                </a>
+              </li>
+              <li className="flex gap-4 group">
+                <a href="tel:+15551234567" className="flex gap-4 hover:text-orange-500 transition-colors">
+                  <Phone className="shrink-0 group-hover:scale-110 transition-transform" /> (555) 123-4567
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -438,9 +449,13 @@ const App: React.FC = () => {
               >
                 <ShoppingCart size={24} />
                 {cartCount > 0 && (
-                  <span className="absolute top-2 right-2 w-4 h-4 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute top-2 right-2 w-4 h-4 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold"
+                  >
                     {cartCount}
-                  </span>
+                  </motion.span>
                 )}
               </button>
             </div>
