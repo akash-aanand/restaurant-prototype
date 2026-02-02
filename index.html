@@ -30,14 +30,20 @@
     * {
       user-select: none;
     }
+    /* Fallback cursor for mobile/touch */
+    @media (max-width: 768px) {
+      body { cursor: auto; }
+    }
   </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "framer-motion": "https://esm.sh/framer-motion@^12.29.3",
+    "react": "https://esm.sh/react@19.0.0",
+    "react/": "https://esm.sh/react@19.0.0/",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
+    "framer-motion": "https://esm.sh/framer-motion@11.11.17?external=react",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
@@ -45,5 +51,7 @@
 </head>
 <body>
   <div id="root"></div>
+  <!-- Explicitly loading the entry point script -->
+  <script type="module" src="./index.tsx"></script>
 </body>
 </html>
