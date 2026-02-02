@@ -13,6 +13,10 @@
       cursor: none;
       overflow-x: hidden;
       background-color: #f8f4f1;
+      margin: 0;
+    }
+    #root {
+      min-height: 100vh;
     }
     ::-webkit-scrollbar {
       width: 8px;
@@ -30,12 +34,12 @@
     * {
       user-select: none;
     }
-    /* Fallback cursor for mobile/touch */
+    /* Fallback cursor for mobile/touch or if JS fails */
     @media (max-width: 768px) {
-      body { cursor: auto; }
+      body { cursor: auto !important; }
     }
   </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
@@ -48,10 +52,21 @@
   }
 }
 </script>
+  <script>
+    // Global error listener to help debug blank pages in remote environments
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error("Global Error Caught:", message, "at", source, ":", lineno);
+      return false;
+    };
+  </script>
 </head>
 <body>
-  <div id="root"></div>
-  <!-- Explicitly loading the entry point script -->
+  <div id="root">
+    <!-- Initial fallback display -->
+    <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8f4f1;">
+      <div style="font-family: sans-serif; font-weight: 800; color: #000; letter-spacing: -0.05em; font-size: 2rem;">TASTE</div>
+    </div>
+  </div>
   <script type="module" src="./index.tsx"></script>
 </body>
 </html>

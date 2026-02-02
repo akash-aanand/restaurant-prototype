@@ -2,15 +2,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Menu, ArrowRight, Phone, Mail, MapPin, Apple, Play, X, ChevronRight, Instagram, Twitter, Facebook } from 'lucide-react';
-import { CustomCursor } from './components/CustomCursor';
-import { FloatingDecorations } from './components/FloatingDecorations';
-import { FoodCard } from './components/FoodCard';
-import { Gallery } from './components/Gallery';
-import { AboutSection } from './components/AboutSection';
-import { ReservationForm } from './components/ReservationForm';
-import { CartOverlay } from './components/CartOverlay';
-import { CATEGORIES, FOOD_ITEMS, NAV_LINKS } from './constants';
-import { FoodItem, CartItem } from './types';
+import { CustomCursor } from './components/CustomCursor.tsx';
+import { FloatingDecorations } from './components/FloatingDecorations.tsx';
+import { FoodCard } from './components/FoodCard.tsx';
+import { Gallery } from './components/Gallery.tsx';
+import { AboutSection } from './components/AboutSection.tsx';
+import { ReservationForm } from './components/ReservationForm.tsx';
+import { CartOverlay } from './components/CartOverlay.tsx';
+import { CATEGORIES, FOOD_ITEMS, NAV_LINKS } from './constants.tsx';
+import { FoodItem, CartItem } from './types.ts';
 
 const App: React.FC = () => {
   const [activePage, setActivePage] = useState('home');
@@ -34,7 +34,6 @@ const App: React.FC = () => {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
-    // Removed automatic opening of cart here as per user request
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -47,7 +46,6 @@ const App: React.FC = () => {
     }));
   };
 
-  // Fixed error: Corrected removeFromCart to properly filter items and fixed syntax issues
   const removeFromCart = (id: string) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
@@ -242,12 +240,10 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Page Content Switcher */}
       <main className="relative z-10">
         <AnimatePresence mode="wait">
           {activePage === 'home' && (
             <motion.div key="home" {...pageTransition}>
-              {/* Hero Section */}
               <section className="relative pt-40 md:pt-64 pb-24 px-6 md:px-12 max-w-7xl mx-auto min-h-[90vh] flex items-center">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
                   <div>
@@ -292,7 +288,6 @@ const App: React.FC = () => {
                 </div>
               </section>
 
-              {/* Quick Preview Sections */}
               <div className="bg-white/30 backdrop-blur-md py-20">
                 <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-8">
                   <h3 className="text-3xl font-black">Our Popular Picks</h3>
@@ -371,7 +366,6 @@ const App: React.FC = () => {
         </AnimatePresence>
       </main>
 
-      {/* Shared Footer */}
       <footer className="px-6 md:px-12 max-w-7xl mx-auto pt-40 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-20 mb-32">
           <div>
@@ -421,7 +415,6 @@ const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Bottom Floating Nav for Mobile */}
       <AnimatePresence>
         {!isMobileMenuOpen && (
           <motion.div 
