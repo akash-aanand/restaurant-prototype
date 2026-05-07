@@ -4,69 +4,77 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taste - Premium Restaurant</title>
+  <title>Taste - Premium Culinary Experience</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #f97316;
+      --bg: #fafaf9;
+    }
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      cursor: none;
-      overflow-x: hidden;
-      background-color: #f8f4f1;
       margin: 0;
+      background-color: var(--bg);
+      color: #1c1917;
+      overflow-x: hidden;
     }
-    #root {
-      min-height: 100vh;
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .preserve-3d {
+      transform-style: preserve-3d;
     }
     ::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: #f5f5f4;
     }
     ::-webkit-scrollbar-thumb {
-      background: #e2e8f0;
+      background: #d6d3d1;
       border-radius: 10px;
     }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #cbd5e1;
-    }
     * {
-      user-select: none;
+      scroll-behavior: smooth;
     }
-    /* Fallback cursor for mobile/touch or if JS fails */
-    @media (max-width: 768px) {
-      body { cursor: auto !important; }
+    #root:empty::before {
+      content: 'Loading Experience...';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: #f97316;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
     }
   </style>
   <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@19.0.0",
-    "react/": "https://esm.sh/react@19.0.0/",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
     "framer-motion": "https://esm.sh/framer-motion@11.11.17?external=react",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+    "zustand": "https://esm.sh/zustand@4.5.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/"
   }
 }
 </script>
-  <script>
-    // Global error listener to help debug blank pages in remote environments
-    window.onerror = function(message, source, lineno, colno, error) {
-      console.error("Global Error Caught:", message, "at", source, ":", lineno);
-      return false;
-    };
-  </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
-  <div id="root">
-    <!-- Initial fallback display -->
-    <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8f4f1;">
-      <div style="font-family: sans-serif; font-weight: 800; color: #000; letter-spacing: -0.05em; font-size: 2rem;">TASTE</div>
-    </div>
-  </div>
+  <div id="root"></div>
   <script type="module" src="./index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

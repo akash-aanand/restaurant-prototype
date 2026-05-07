@@ -1,9 +1,35 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, Clock, Send } from 'lucide-react';
+import { createReservation } from '../src/services/api.ts';
 
 export const ReservationForm: React.FC = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    guests: 2,
+    date: '',
+    time: '',
+    specialRequests: ''
+  });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      await createReservation(formData);
+      setStatus('success');
+      setMessage('Reservation request sent! We will confirm via email.');
+      setFormData({ fullName: '', email: '', guests: 2, date: '', time: '', specialRequests: '' });
+    } catch (err) {
+      setStatus('error');
+      setMessage((err as Error).message);
+    }
+  };
+
   return (
     <section id="reserve" className="py-24 px-6 md:px-12 max-w-7xl mx-auto">
       <div className="bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[60px] p-8 md:p-16 shadow-2xl relative overflow-hidden">
@@ -31,43 +57,91 @@ export const ReservationForm: React.FC = () => {
             </div>
           </div>
 
-          <form className="space-y-6 bg-white p-8 md:p-10 rounded-[40px] shadow-xl">
+          <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 md:p-10 rounded-[40px] shadow-xl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2">Full Name</label>
-                <input type="text" placeholder="John Doe" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" />
+                <input 
+                  type="text" 
+                  placeholder="John Doe" 
+                  required
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2">Email Address</label>
-                <input type="email" placeholder="john@example.com" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" />
+                <input 
+                  type="email" 
+                  placeholder="john@example.com" 
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2">Guests</label>
-                <select className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all appearance-none">
-                  <option>2 Persons</option>
-                  <option>4 Persons</option>
-                  <option>6+ Persons</option>
+                <select 
+                  value={formData.guests}
+                  onChange={(e) => setFormData({...formData, guests: Number(e.target.value)})}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all appearance-none"
+                >
+                  {[2, 4, 6, 8, 10, 12].map(n => (
+                    <option key={n} value={n}>{n} Persons</option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2">Date</label>
-                <input type="date" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" />
+                <input 
+                  type="date" 
+                  required
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2">Time</label>
-                <input type="time" className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" />
+                <input 
+                  type="time" 
+                  required
+                  value={formData.time}
+                  onChange={(e) => setFormData({...formData, time: e.target.value})}
+                  className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                />
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-2">Special Requests (Occasion, Allergies)</label>
+              <textarea 
+                value={formData.specialRequests}
+                onChange={(e) => setFormData({...formData, specialRequests: e.target.value})}
+                placeholder="Anniversary, Nut allergy, etc."
+                className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none transition-all resize-none h-24"
+              />
+            </div>
+
+            {status !== 'idle' && (
+              <p className={`text-sm font-bold text-center ${status === 'error' ? 'text-red-500' : 'text-green-500'}`}>
+                {status === 'loading' ? 'Processing...' : message}
+              </p>
+            )}
+
             <motion.button 
+              type="submit"
+              disabled={status === 'loading'}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-black text-white py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-2xl hover:bg-orange-600 transition-colors"
+              className={`w-full ${status === 'loading' ? 'bg-gray-400' : 'bg-black'} text-white py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-2xl hover:bg-orange-600 transition-colors`}
             >
-              Confirm Reservation
+              {status === 'loading' ? 'One Moment...' : 'Confirm Reservation'}
               <Send size={20} />
             </motion.button>
           </form>

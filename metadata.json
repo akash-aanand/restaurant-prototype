@@ -1,5 +1,6 @@
 {
-  "name": "Taste Restaurant & BBQ",
-  "description": "A premium dining experience with immersive 3D parallax effects, custom cursor animations, and a responsive mobile-first design.",
-  "requestFramePermissions": []
+  "name": "Ludo Taste - Premium Edition",
+  "description": "A high-fidelity Ludo gaming experience with smooth animations, AI opponents, and immersive 3D effects.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

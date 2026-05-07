@@ -19,11 +19,15 @@ export const CustomCursor: React.FC = () => {
 
     const handleHover = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a')) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
-      }
+      const isInteractable = 
+        target.tagName === 'BUTTON' || 
+        target.tagName === 'A' || 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'SELECT' ||
+        target.closest('button') || 
+        target.closest('a');
+      
+      setIsHovering(!!isInteractable);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -37,16 +41,16 @@ export const CustomCursor: React.FC = () => {
   return (
     <>
       <motion.div
-        className="fixed top-0 left-0 w-6 h-6 bg-black rounded-full pointer-events-none z-[9999] mix-blend-difference hidden md:block"
+        className="fixed top-0 left-0 w-6 h-6 bg-orange-500 rounded-full pointer-events-none z-[9999] mix-blend-difference hidden md:block"
         style={{ x: cursorX, y: cursorY, scale: isHovering ? 2.5 : 1 }}
       />
       <motion.div
-        className="fixed top-0 left-0 w-12 h-12 border border-black/20 rounded-full pointer-events-none z-[9998] hidden md:block"
+        className="fixed top-0 left-0 w-12 h-12 border-2 border-orange-500/30 rounded-full pointer-events-none z-[9998] hidden md:block"
         animate={{ 
           x: position.x - 24, 
           y: position.y - 24,
-          scale: isHovering ? 1.5 : 1,
-          opacity: isHovering ? 0 : 0.5
+          scale: isHovering ? 1.8 : 1,
+          opacity: isHovering ? 0.2 : 0.5
         }}
         transition={{ type: 'spring', damping: 30, stiffness: 150 }}
       />

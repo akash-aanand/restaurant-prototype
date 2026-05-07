@@ -1,32 +1,60 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, ArrowRight, Phone, Mail, MapPin, Apple, Play, X, ChevronRight, Instagram, Twitter, Facebook } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, Menu as MenuIcon, Phone, MapPin, ArrowRight, Instagram, Facebook, Twitter } from 'lucide-react';
 import { CustomCursor } from './components/CustomCursor.tsx';
 import { FloatingDecorations } from './components/FloatingDecorations.tsx';
 import { FoodCard } from './components/FoodCard.tsx';
-import { Gallery } from './components/Gallery.tsx';
 import { AboutSection } from './components/AboutSection.tsx';
+import { Gallery } from './components/Gallery.tsx';
 import { ReservationForm } from './components/ReservationForm.tsx';
 import { CartOverlay } from './components/CartOverlay.tsx';
-import { CATEGORIES, FOOD_ITEMS, NAV_LINKS } from './constants.tsx';
 import { FoodItem, CartItem } from './types.ts';
+import { fetchMenu, fetchCategories } from './src/services/api.ts';
 
 const App: React.FC = () => {
-  const [activePage, setActivePage] = useState('home');
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [menuItems, setMenuItems] = useState<FoodItem[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { scrollYProgress } = useScroll();
 
-  // Scroll to top on page change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [activePage]);
+    const loadInitialData = async () => {
+      try {
+        const [cats, menu] = await Promise.all([
+          fetchCategories(),
+          fetchMenu()
+        ]);
+        setCategories(cats);
+        setMenuItems(menu.items);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
+  }, []);
 
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  useEffect(() => {
+    const loadMenu = async () => {
+      try {
+        const data = await fetchMenu(selectedCategory || undefined);
+        setMenuItems(data.items);
+      } catch (err) {
+        console.error('Failed to filter menu:', err);
+      }
+    };
+    if (!loading) loadMenu();
+  }, [selectedCategory]);
 
-  const handleAddToCart = (item: FoodItem) => {
+  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -100]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+
+  const addToCart = (item: FoodItem) => {
     setCartItems(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
@@ -34,427 +62,244 @@ const App: React.FC = () => {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
+    setIsCartOpen(true);
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setCartItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
+    setCartItems(prev => prev.map(i => {
+      if (i.id === id) {
+        const newQty = Math.max(1, i.quantity + delta);
+        return { ...i, quantity: newQty };
       }
-      return item;
+      return i;
     }));
   };
 
-  const removeFromCart = (id: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
+  const removeItem = (id: string) => {
+    setCartItems(prev => prev.filter(i => i.id !== id));
   };
 
-  const filteredItems = useMemo(() => {
-    if (activeCategory === 'all') return FOOD_ITEMS;
-    return FOOD_ITEMS.filter(item => item.category === activeCategory);
-  }, [activeCategory]);
-
-  const pageTransition = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
-    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as any }
-  };
-
-  const handleNavigate = (href: string) => {
-    const page = href.replace('#', '');
-    setActivePage(page);
-    setIsMobileMenuOpen(false);
-  };
-
-  const menuContainerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    },
-    exit: {
-      opacity: 0,
-      transition: {
-        staggerChildren: 0.05,
-        staggerDirection: -1
-      }
-    }
-  };
-
-  const menuItemVariants = {
-    hidden: { opacity: 0, x: 50, rotate: 5 },
-    visible: { 
-      opacity: 1, 
-      x: 0, 
-      rotate: 0,
-      transition: { type: 'spring' as const, damping: 20, stiffness: 100 }
-    },
-    exit: { opacity: 0, x: -20, transition: { duration: 0.2 } }
-  };
+  const cartCount = cartItems.reduce((acc, i) => acc + i.quantity, 0);
 
   return (
-    <div className="min-h-screen relative text-gray-900 overflow-x-hidden bg-[#f8f4f1] scroll-smooth">
+    <div className="relative min-h-screen">
       <CustomCursor />
       <FloatingDecorations />
       
-      <CartOverlay 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={updateQuantity}
-        onRemove={removeFromCart}
-      />
-
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-[60] flex justify-between items-center px-6 md:px-12 py-6 bg-white/10 backdrop-blur-md border-b border-white/20">
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 w-full z-50 px-6 py-4 md:px-12 md:py-8 flex justify-between items-center bg-white/5 backdrop-blur-xl border-b border-black/5">
         <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex flex-col cursor-pointer"
-          onClick={() => setActivePage('home')}
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="flex flex-col"
         >
-          <span className="text-2xl font-black tracking-tighter">Taste</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-gray-400">Restaurant & BBQ</span>
+          <span className="text-2xl font-black tracking-tighter uppercase italic leading-none">Taste</span>
+          <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-orange-500">Fine Dining</span>
         </motion.div>
         
-        <div className="hidden md:flex items-center gap-10">
-          {NAV_LINKS.map((link) => (
-            <button 
-              key={link.label} 
-              onClick={() => handleNavigate(link.href)}
-              className={`font-bold text-xs uppercase tracking-[0.2em] transition-all hover:text-orange-500 ${
-                activePage === link.href.replace('#', '') ? 'text-orange-600' : 'text-gray-600'
-              }`}
+        <div className="hidden md:flex items-center gap-12 font-bold text-sm uppercase tracking-widest text-gray-500">
+          {['Menu', 'About', 'Gallery', 'Reserve'].map((item) => (
+            <motion.a 
+              key={item}
+              href={`#${item.toLowerCase()}`}
+              whileHover={{ color: '#000', scale: 1.05 }}
+              className="cursor-pointer transition-colors"
             >
-              {link.label}
-            </button>
+              {item}
+            </motion.a>
           ))}
         </div>
 
         <div className="flex items-center gap-4">
-          <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            animate={{ scale: cartCount > 0 ? [1, 1.2, 1] : 1 }}
-            transition={{ duration: 0.3 }}
+          <button 
             onClick={() => setIsCartOpen(true)}
             className="relative p-3 bg-black text-white rounded-2xl shadow-xl hover:bg-orange-500 transition-colors"
           >
-            <ShoppingCart size={20} />
+            <ShoppingBag size={20} />
             {cartCount > 0 && (
-              <motion.span 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                key={cartCount}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white"
-              >
+              <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center ring-4 ring-white">
                 {cartCount}
-              </motion.span>
+              </span>
             )}
-          </motion.button>
-          <button 
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden p-3 bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 hover:bg-white transition-colors"
-          >
-            <Menu size={20} />
+          </button>
+          <button className="md:hidden p-3 bg-white rounded-2xl shadow-md">
+            <MenuIcon size={20} />
           </button>
         </div>
       </nav>
 
-      {/* Enhanced Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[100] flex flex-col overflow-hidden"
+      {/* Hero Section */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden px-6">
+        <motion.div 
+          style={{ y: heroY, opacity: heroOpacity }}
+          className="text-center max-w-4xl z-10"
+        >
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="inline-block px-4 py-2 bg-white/30 backdrop-blur-md rounded-full border border-white/50 mb-8"
           >
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-orange-500/10 blur-[150px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none" />
-            
-            <div className="relative z-10 p-8 h-full flex flex-col">
-              <div className="flex justify-between items-center mb-16">
-                <div className="flex flex-col text-white">
-                  <span className="text-2xl font-black tracking-tighter">Taste</span>
-                  <span className="text-[8px] uppercase tracking-[0.2em] font-bold text-gray-500">Premium Dining</span>
-                </div>
-                <motion.button 
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-4 text-white bg-white/10 rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <X size={28} />
-                </motion.button>
-              </div>
-
-              <motion.div 
-                variants={menuContainerVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                className="flex flex-col gap-6"
-              >
-                {NAV_LINKS.map(link => (
-                  <motion.button 
-                    key={link.label} 
-                    variants={menuItemVariants}
-                    onClick={() => handleNavigate(link.href)}
-                    className="text-left group relative"
-                  >
-                    <span className={`text-5xl font-black uppercase tracking-tighter transition-colors block ${
-                      activePage === link.href.replace('#', '') ? 'text-orange-500' : 'text-white'
-                    }`}>
-                      {link.label}
-                    </span>
-                    <motion.div 
-                      className="h-1 bg-orange-500 absolute -bottom-1 left-0 rounded-full"
-                      initial={{ width: 0 }}
-                      whileHover={{ width: '100%' }}
-                    />
-                  </motion.button>
-                ))}
-              </motion.div>
-
-              <div className="mt-auto pt-10 border-t border-white/10">
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9 }}
-                  className="flex gap-6 text-white"
-                >
-                  <Instagram className="hover:text-orange-500 transition-colors cursor-pointer" size={24} />
-                  <Twitter className="hover:text-orange-500 transition-colors cursor-pointer" size={24} />
-                  <Facebook className="hover:text-orange-500 transition-colors cursor-pointer" size={24} />
-                </motion.div>
-                <p className="mt-8 text-gray-600 text-[10px] uppercase font-bold tracking-widest">© 2024 TASTE RESTAURANT</p>
-              </div>
-            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600">Michelin Star Experience</span>
           </motion.div>
-        )}
-      </AnimatePresence>
+          
+          <motion.h1 
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-6xl md:text-[120px] font-black tracking-tighter leading-[0.9] mb-8"
+          >
+            Savor the Art of <br/> <span className="text-orange-500 italic">Fine Dining</span>
+          </motion.h1>
 
-      <main className="relative z-10">
-        <AnimatePresence mode="wait">
-          {activePage === 'home' && (
-            <motion.div key="home" {...pageTransition}>
-              <section className="relative pt-40 md:pt-64 pb-24 px-6 md:px-12 max-w-7xl mx-auto min-h-[90vh] flex items-center">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
-                  <div>
-                    <h1 className="text-6xl md:text-9xl font-black leading-[0.9] mb-10 tracking-tight">
-                      Eat <br />
-                      <span className="text-orange-500">Authentic</span> <br />
-                      Food Only.
-                    </h1>
-                    <p className="text-gray-500 text-lg md:text-xl mb-12 max-w-lg leading-relaxed">
-                      Experience a symphony of flavors curated by world-renowned chefs using ingredients from our own organic gardens.
-                    </p>
-                    <div className="flex flex-wrap gap-6">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        onClick={() => setActivePage('reserve')}
-                        className="flex items-center gap-3 bg-black text-white px-10 py-5 rounded-[24px] text-lg font-black shadow-2xl group"
-                      >
-                        Book Table
-                        <ArrowRight className="group-hover:translate-x-2 transition-transform" />
-                      </motion.button>
-                      <button 
-                        onClick={() => setActivePage('about')}
-                        className="flex items-center gap-4 font-black group"
-                      >
-                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                          <Play className="fill-black ml-1" />
-                        </div>
-                        Watch Story
-                      </button>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <div className="relative z-10 w-full aspect-square max-w-[600px] mx-auto">
-                      <motion.img 
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-                        src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1000&h=1000&fit=crop" 
-                        className="w-full h-full object-cover rounded-full shadow-2xl ring-[20px] ring-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
+          <motion.p 
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-gray-500 text-lg md:text-2xl font-medium max-w-2xl mx-auto mb-12"
+          >
+            A symphony of flavors crafted with seasonal ingredients and culinary precision.
+          </motion.p>
 
-              <div className="bg-white/30 backdrop-blur-md py-20">
-                <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-8">
-                  <h3 className="text-3xl font-black">Our Popular Picks</h3>
-                  <button onClick={() => setActivePage('menu')} className="flex items-center gap-2 font-bold text-orange-500">
-                    See All Menu <ChevronRight />
-                  </button>
-                </div>
-                <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                   {FOOD_ITEMS.slice(0, 3).map(item => <FoodCard key={item.id} item={item} onAddToCart={handleAddToCart} />)}
-                </div>
-              </div>
-            </motion.div>
-          )}
+          <motion.div 
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="flex flex-col md:flex-row items-center justify-center gap-6"
+          >
+            <a href="#menu" className="w-full md:w-auto px-12 py-6 bg-black text-white rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-2xl hover:bg-orange-600 transition-all hover:scale-105">
+              Explore Menu <ArrowRight size={20} />
+            </a>
+            <a href="#reserve" className="w-full md:w-auto px-12 py-6 bg-white border-2 border-black/5 text-black rounded-[24px] font-black text-lg flex items-center justify-center gap-3 shadow-xl hover:bg-gray-50 transition-all">
+              Book Table
+            </a>
+          </motion.div>
+        </motion.div>
 
-          {activePage === 'about' && (
-            <motion.div key="about" {...pageTransition} className="pt-32">
-              <AboutSection />
-            </motion.div>
-          )}
+        {/* Hero 3D Images */}
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0, rotate: -15 }}
+          animate={{ scale: 1, opacity: 0.2, rotate: 15 }}
+          transition={{ duration: 2, ease: "easeOut" }}
+          className="absolute -right-40 -top-20 w-[600px] h-[600px] pointer-events-none hidden lg:block"
+        >
+          <img src="https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80" className="w-full h-full object-contain rounded-full blur-2xl" />
+        </motion.div>
+      </section>
 
-          {activePage === 'menu' && (
-            <motion.div key="menu" {...pageTransition} className="pt-32 pb-24">
-              <section className="px-6 md:px-12 max-w-7xl mx-auto">
-                <div className="text-center mb-16">
-                  <p className="uppercase tracking-[0.4em] text-orange-500 font-bold text-sm mb-4">Explore Menu</p>
-                  <h2 className="text-5xl md:text-8xl font-black mb-8">Our Specialties</h2>
-                  <div className="flex flex-wrap justify-center gap-3 no-scrollbar">
-                    {CATEGORIES.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => setActiveCategory(cat.id)}
-                        className={`flex items-center gap-3 px-8 py-4 rounded-[28px] transition-all border-2 ${
-                          activeCategory === cat.id 
-                          ? 'bg-black text-white border-black shadow-xl scale-105' 
-                          : 'bg-white/40 border-white/60 text-gray-600'
-                        }`}
-                      >
-                        <span>{cat.icon}</span>
-                        <span className="font-black text-xs uppercase tracking-widest">{cat.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                  <AnimatePresence mode="popLayout">
-                    {filteredItems.map((item) => (
-                      <motion.div
-                        key={item.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <FoodCard item={item} onAddToCart={handleAddToCart} />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </section>
-            </motion.div>
-          )}
-
-          {activePage === 'gallery' && (
-            <motion.div key="gallery" {...pageTransition} className="pt-32">
-              <Gallery />
-            </motion.div>
-          )}
-
-          {activePage === 'reserve' && (
-            <motion.div key="reserve" {...pageTransition} className="pt-32">
-              <ReservationForm />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      <footer className="px-6 md:px-12 max-w-7xl mx-auto pt-40 pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-20 mb-32">
+      {/* Menu Section */}
+      <section id="menu" className="py-24 px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
           <div>
-            <div className="flex flex-col mb-10">
-              <span className="text-3xl font-black tracking-tighter">Taste</span>
-              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-gray-400">Restaurant & BBQ</span>
-            </div>
-            <p className="text-gray-500 leading-relaxed text-lg mb-8">Elevating the standard of dining since 1995. Fresh ingredients and masterful preparation.</p>
+            <p className="uppercase tracking-[0.4em] text-orange-500 font-bold text-sm mb-4">Chef's Selection</p>
+            <h2 className="text-4xl md:text-6xl font-black">Our Signature Menu</h2>
           </div>
-          <div>
-            <h4 className="font-black text-xl mb-10 uppercase tracking-widest">Pages</h4>
-            <ul className="space-y-6 text-gray-500 font-bold text-lg">
-              {NAV_LINKS.map(link => (
-                <li key={link.label}>
-                  <button onClick={() => handleNavigate(link.href)} className="hover:text-orange-500 transition-colors text-left">
-                    {link.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black text-xl mb-10 uppercase tracking-widest">Hours</h4>
-            <ul className="space-y-6 text-gray-500 font-bold text-lg">
-              <li>Mon - Fri: 11AM - 11PM</li>
-              <li>Sat - Sun: 9AM - 12AM</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black text-xl mb-10 uppercase tracking-widest">Contact</h4>
-            <ul className="space-y-6 text-gray-500 font-bold text-lg">
-              <li className="flex gap-4 group">
-                <a href="https://maps.google.com/?q=121+King+St,+Melbourne+VIC+3000" target="_blank" rel="noopener noreferrer" className="flex gap-4 hover:text-orange-500 transition-colors">
-                  <MapPin className="shrink-0 group-hover:scale-110 transition-transform" /> 121 King St, VIC
-                </a>
-              </li>
-              <li className="flex gap-4 group">
-                <a href="tel:+15551234567" className="flex gap-4 hover:text-orange-500 transition-colors">
-                  <Phone className="shrink-0 group-hover:scale-110 transition-transform" /> (555) 123-4567
-                </a>
-              </li>
-            </ul>
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar max-w-full">
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all flex-shrink-0 ${!selectedCategory ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+            >
+              All
+            </button>
+            {categories.map((cat) => (
+              <button 
+                key={cat._id} 
+                onClick={() => setSelectedCategory(cat._id)}
+                className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-widest uppercase transition-all flex-shrink-0 ${selectedCategory === cat._id ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+              >
+                {cat.name}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="border-t border-gray-200 pt-12 flex justify-between items-center">
-          <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">© 2024 Taste Restaurant.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {menuItems.map((item, idx) => (
+            <motion.div
+              key={item.id || (item as any)._id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: idx * 0.1 }}
+            >
+              <FoodCard item={item} onAddToCart={addToCart} />
+            </motion.div>
+          ))}
+          {menuItems.length === 0 && !loading && (
+            <div className="col-span-full py-20 text-center text-gray-400 font-bold uppercase tracking-widest">
+              No items found in this selection.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <AboutSection />
+      <Gallery />
+      <ReservationForm />
+
+      {/* Footer */}
+      <footer className="bg-black text-white py-24 px-6 md:px-12">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
+          <div className="space-y-8">
+            <div className="flex flex-col">
+              <span className="text-3xl font-black tracking-tighter uppercase italic leading-none">Taste</span>
+              <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-orange-500">Fine Dining</span>
+            </div>
+            <p className="text-gray-400 font-medium leading-relaxed">
+              Elevating the culinary experience through innovation, tradition, and passion for exceptional taste.
+            </p>
+            <div className="flex gap-6">
+              <Instagram className="text-gray-500 hover:text-white cursor-pointer transition-colors" />
+              <Facebook className="text-gray-500 hover:text-white cursor-pointer transition-colors" />
+              <Twitter className="text-gray-500 hover:text-white cursor-pointer transition-colors" />
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-black text-lg mb-8 uppercase tracking-widest">Opening Hours</h4>
+            <ul className="space-y-4 text-gray-400 font-bold text-sm">
+              <li className="flex justify-between"><span>Mon - Thu</span> <span>17:00 - 22:00</span></li>
+              <li className="flex justify-between"><span>Fri - Sat</span> <span>17:00 - 23:30</span></li>
+              <li className="flex justify-between"><span>Sunday</span> <span>12:00 - 21:00</span></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-black text-lg mb-8 uppercase tracking-widest">Contact</h4>
+            <ul className="space-y-4 text-gray-400 font-bold text-sm">
+              <li className="flex items-center gap-3"><Phone size={16} /> +1 (555) 012-3456</li>
+              <li className="flex items-center gap-3"><MapPin size={16} /> 123 Gourmet Ave, NY</li>
+              <li className="flex items-center gap-3 underline">hello@taste.luxury</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-black text-lg mb-8 uppercase tracking-widest">Newsletter</h4>
+            <p className="text-gray-400 font-medium mb-6 text-sm">Join our mailing list for exclusive events and seasonal menu updates.</p>
+            <div className="relative">
+              <input type="text" placeholder="Your Email" className="w-full bg-white/10 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-orange-500 outline-none text-white text-sm" />
+              <button className="absolute right-2 top-2 bottom-2 bg-orange-500 text-white px-4 rounded-xl font-bold text-xs hover:bg-orange-600 transition-colors">Join</button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto pt-24 mt-24 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+          <p>© 2024 Taste Restaurant Group. All rights reserved.</p>
+          <div className="flex gap-12">
+            <span>Privacy Policy</span>
+            <span>Terms of Service</span>
+            <span>Accessibility</span>
+          </div>
         </div>
       </footer>
 
-      <AnimatePresence>
-        {!isMobileMenuOpen && (
-          <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="md:hidden fixed bottom-8 left-6 right-6 z-50"
-          >
-            <div className="bg-black/90 backdrop-blur-2xl rounded-[32px] p-5 flex justify-between items-center shadow-2xl">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)} 
-                className="p-4 text-white bg-white/10 rounded-2xl hover:bg-white/20 transition-colors"
-              >
-                <Menu size={24} />
-              </button>
-              <button 
-                onClick={() => setActivePage('reserve')} 
-                className="flex-1 mx-4 p-4 bg-orange-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 active:scale-95 transition-transform"
-              >
-                Reserve
-              </button>
-              <button 
-                onClick={() => setIsCartOpen(true)}
-                className="p-4 text-white bg-white/10 rounded-2xl relative"
-              >
-                <ShoppingCart size={24} />
-                {cartCount > 0 && (
-                  <motion.span 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute top-2 right-2 w-4 h-4 bg-orange-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold"
-                  >
-                    {cartCount}
-                  </motion.span>
-                )}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CartOverlay 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+        items={cartItems}
+        onUpdateQuantity={updateQuantity}
+        onRemove={removeItem}
+      />
     </div>
   );
 };
